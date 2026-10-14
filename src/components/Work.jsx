@@ -10,6 +10,13 @@ import Phone from './Phone'
 import { Chip, T, isReal } from './ui'
 
 const n = projects.length
+
+// The phone's screen slides in from the side you're heading towards.
+const screenSwap = {
+  enter: (dir) => ({ opacity: 0, x: dir * 70, scale: 0.96, filter: 'blur(6px)' }),
+  show: { opacity: 1, x: 0, scale: 1, filter: 'blur(0px)', transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } },
+  leave: (dir) => ({ opacity: 0, x: dir * -70, scale: 0.96, filter: 'blur(6px)', transition: { duration: 0.3, ease: [0.4, 0, 1, 1] } }),
+}
 const pad = (i) => String(i + 1).padStart(2, '0')
 
 export function Stack({ items }) {
@@ -65,8 +72,16 @@ function Notes({ p, i, active }) {
 }
 
 function Dock({ active, onPick }) {
+  const ref = useRef(null)
+  // On phones the dock is a scrolling row; keep the open app centred in it.
+  useEffect(() => {
+    const dock = ref.current
+    if (dock.scrollWidth <= dock.clientWidth) return
+    const app = dock.children[active]
+    dock.scrollTo({ left: app.offsetLeft - (dock.clientWidth - app.offsetWidth) / 2, behavior: 'smooth' })
+  }, [active])
   return (
-    <div className="dock" role="tablist" aria-label="Projects">
+    <div className="dock" role="tablist" aria-label="Projects" ref={ref}>
       {projects.map((p, i) => (
         <button
           key={p.slug}
@@ -111,6 +126,12 @@ export default function Work() {
   const lenis = useLenis()
   const p = projects[active]
   const { Demo, tone } = demos[p.slug]
+  const swipe = useRef(null)
+
+  // Which way we moved, so the next screen slides in from that side.
+  const last = useRef({ active, dir: 1 })
+  if (last.current.active !== active) last.current = { active, dir: active > last.current.active ? 1 : -1 }
+  const dir = last.current.dir
 
   // Desktop: pin the stage and let vertical scroll walk the notes sideways.
   useGSAP(() => {
@@ -140,8 +161,25 @@ export default function Work() {
   const goTo = (i) => {
     const next = Math.max(0, Math.min(n - 1, i))
     const st = trigger.current
-    if (st && lenis) lenis.scrollTo(st.start + ((st.end - st.start) * next) / (n - 1), { duration: 1.2 })
-    else setActive(next)
+    if (st && lenis) return lenis.scrollTo(st.start + ((st.end - st.start) * next) / (n - 1), { duration: 1.2 })
+    if (next === active) return
+    navigator.vibrate?.(8)
+    setActive(next)
+  }
+
+  // Phones and tablets: swipe the notes sideways to change project. Vertical
+  // drags are left alone (touch-action: pan-y), so the page still scrolls.
+  const swipeHandlers = {
+    onPointerDown: (e) => { swipe.current = { x: e.clientX, y: e.clientY } },
+    onPointerCancel: () => { swipe.current = null },
+    onPointerUp: (e) => {
+      const start = swipe.current
+      swipe.current = null
+      if (!start || trigger.current) return
+      const dx = e.clientX - start.x
+      const dy = e.clientY - start.y
+      if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.3) goTo(active + (dx < 0 ? 1 : -1))
+    },
   }
 
   // Arrow keys move between projects while the section is on screen.
@@ -177,14 +215,15 @@ export default function Work() {
           <div className="work__stage" style={{ '--i': active, '--brand': p.brand.primary }}>
             <div className="work__device">
               <Phone tone={tone}>
-                <AnimatePresence mode="popLayout" initial={false}>
+                <AnimatePresence mode="popLayout" initial={false} custom={dir}>
                   <motion.div
                     key={p.slug}
                     className="phone__swap"
-                    initial={{ opacity: 0, scale: 0.94, filter: 'blur(6px)' }}
-                    animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-                    exit={{ opacity: 0, scale: 1.04, filter: 'blur(6px)' }}
-                    transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                    custom={dir}
+                    variants={screenSwap}
+                    initial="enter"
+                    animate="show"
+                    exit="leave"
                   >
                     <Demo />
                   </motion.div>
@@ -206,7 +245,7 @@ export default function Work() {
               </div>
               <p className="work__hint">{site.phoneHint} <kbd>←</kbd><kbd>→</kbd></p>
             </div>
-            <div className="work__viewport">
+            <div className="work__viewport" {...swipeHandlers}>
               <div className="work__track">
                 {projects.map((proj, i) => <Notes key={proj.slug} p={proj} i={i} active={i === active} />)}
               </div>
