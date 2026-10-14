@@ -3,7 +3,7 @@ import { ArrowUpRight } from 'lucide-react'
 import { projects } from '../data/content'
 import { demos } from '../demos'
 import Phone from '../components/Phone'
-import { Stack } from '../components/Work'
+import { LiveButton, Stack } from '../components/Work'
 import { FadeIn, Reveal, T, isReal } from '../components/ui'
 
 function Block({ title, children }) {
@@ -41,6 +41,12 @@ export default function CaseStudy() {
             </dd>
           </div>
         </dl>
+        {(isReal(p.live) || isReal(p.repo)) && (
+          <div className="cs__actions">
+            <LiveButton p={p} />
+            {isReal(p.repo) && <a className="btn" href={p.repo} target="_blank" rel="noreferrer">View code <ArrowUpRight size={16} /></a>}
+          </div>
+        )}
         {p.credit && <p className="cs__credit"><T v={p.credit} /></p>}
       </header>
 

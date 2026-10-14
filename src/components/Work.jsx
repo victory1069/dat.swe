@@ -20,9 +20,31 @@ export function Stack({ items }) {
   )
 }
 
-function Notes({ p, i }) {
+const host = (url) => new URL(url).hostname.replace(/^www\./, '')
+
+// A pill that opens the real product in a new tab, in the project's colour.
+export function LiveButton({ p, className = '' }) {
+  if (!isReal(p.live)) return null
   return (
-    <article className="panel" style={{ '--brand': p.brand.primary }}>
+    <a
+      className={`live ${className}`}
+      href={p.live}
+      target="_blank"
+      rel="noreferrer"
+      style={{ '--brand': p.brand.primary }}
+      aria-label={`Open ${p.name}, live site, in a new tab`}
+    >
+      <i className="live__dot" aria-hidden="true" />
+      <span className="live__label">Live</span>
+      <span className="live__host">{host(p.live)}</span>
+      <ArrowUpRight size={15} aria-hidden="true" />
+    </a>
+  )
+}
+
+function Notes({ p, i, active }) {
+  return (
+    <article className={`panel${active ? ' is-active' : ''}`} style={{ '--brand': p.brand.primary }}>
       <p className="panel__index">{pad(i)} <span>/ {pad(n - 1)}</span></p>
       <h3 className="panel__name">{p.name}</h3>
       <p className="panel__tagline">{p.tagline}</p>
@@ -35,7 +57,7 @@ function Notes({ p, i }) {
         <Link className="btn btn--solid" to={`/work/${p.slug}`} data-cursor="view">
           Read the case study <ArrowRight size={16} />
         </Link>
-        {isReal(p.live) && <a className="btn" href={p.live} target="_blank" rel="noreferrer">Live site <ArrowUpRight size={16} /></a>}
+        <LiveButton p={p} />
         {isReal(p.repo) && <a className="btn" href={p.repo} target="_blank" rel="noreferrer">Code <ArrowUpRight size={16} /></a>}
       </div>
     </article>
@@ -67,13 +89,14 @@ function ProjectList() {
   return (
     <ol className="plist">
       {projects.map((p, i) => (
-        <li key={p.slug}>
+        <li key={p.slug} className="plist__item">
           <Link to={`/work/${p.slug}`} className="plist__row" style={{ '--brand': p.brand.primary }} data-cursor="view">
             <span className="plist__n">{pad(i)}</span>
             <span className="plist__name">{p.name}</span>
             <span className="plist__tag">{p.tagline}</span>
             <ArrowRight className="plist__arrow" />
           </Link>
+          <LiveButton p={p} className="plist__live" />
         </li>
       ))}
     </ol>
@@ -168,11 +191,24 @@ export default function Work() {
                 </AnimatePresence>
               </Phone>
               <Dock active={active} onPick={goTo} />
+              <div className="work__live">
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.div
+                    key={p.slug}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    <LiveButton p={p} />
+                  </motion.div>
+                </AnimatePresence>
+              </div>
               <p className="work__hint">{site.phoneHint} <kbd>←</kbd><kbd>→</kbd></p>
             </div>
             <div className="work__viewport">
               <div className="work__track">
-                {projects.map((proj, i) => <Notes key={proj.slug} p={proj} i={i} />)}
+                {projects.map((proj, i) => <Notes key={proj.slug} p={proj} i={i} active={i === active} />)}
               </div>
             </div>
             <div className="work__bar" aria-hidden="true"><i /></div>
