@@ -138,7 +138,7 @@ export const projects = [
     role: tbc('Solo build?'),
     timeline: '2026',
     stack: ['React', 'Tailwind v4', 'Framer Motion', 'Vite'],
-    live: tbc('Live URL'),
+    live: 'https://www.thebridgepitch.com',
     repo: null,
     brand: { bg: '#0B0D10', ink: '#F5F2EC', primary: '#FF3B14', accent: '#D9A521' },
     problem:
@@ -149,7 +149,7 @@ export const projects = [
     ],
     hard:
       'Enforcing the brand in code. The mark is generated from its unit grid rather than traced. Only the four approved colourways exist as options, and clear space is built into the lockup, so there is no way to use the logo wrong.',
-    status: tbc('Live? Any outcome from the network launch?'),
+    status: 'Live at thebridgepitch.com.',
     next: tbc('One honest line'),
   },
 ]
